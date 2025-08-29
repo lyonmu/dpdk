@@ -20,7 +20,8 @@
 
 /* PMD socket service for tools. */
 
-#define MLX5_SOCKET_PATH "/var/tmp/dpdk_net_mlx5_%d"
+#define MLX5_SOCKET_DPATH "/var/tmp"
+#define MLX5_SOCKET_FNAME "dpdk_net_mlx5"
 #define MLX5_ALL_PORT_IDS 0xffff
 
 int server_socket = -1; /* Unix socket for primary process. */
@@ -177,8 +178,13 @@ mlx5_pmd_socket_init(void)
 	ret = fcntl(server_socket, F_SETFL, flags | O_NONBLOCK);
 	if (ret < 0)
 		goto close;
-	snprintf(sun.sun_path, sizeof(sun.sun_path), MLX5_SOCKET_PATH,
-		 getpid());
+
+	if (access(MLX5_SOCKET_DPATH, W_OK) == 0)
+		snprintf(sun.sun_path, sizeof(sun.sun_path), "%s/%s_%d",
+			 MLX5_SOCKET_DPATH, MLX5_SOCKET_FNAME, getpid());
+	else
+		snprintf(sun.sun_path, sizeof(sun.sun_path), "%s/%s_%d",
+			 rte_eal_get_runtime_dir(), MLX5_SOCKET_FNAME, getpid());
 	remove(sun.sun_path);
 	ret = bind(server_socket, (const struct sockaddr *)&sun, sizeof(sun));
 	if (ret < 0) {
@@ -223,6 +229,13 @@ mlx5_pmd_socket_uninit(void)
 					  mlx5_pmd_socket_handle, NULL);
 	claim_zero(close(server_socket));
 	server_socket = -1;
-	MKSTR(path, MLX5_SOCKET_PATH, getpid());
-	claim_zero(remove(path));
+	if (access(MLX5_SOCKET_DPATH, W_OK) == 0) {
+		MKSTR(path, "%s/%s_%d", MLX5_SOCKET_DPATH, MLX5_SOCKET_FNAME,
+		      getpid());
+		claim_zero(remove(path));
+	} else {
+		MKSTR(path2, "%s/%s_%d", rte_eal_get_runtime_dir(), MLX5_SOCKET_FNAME,
+		      getpid());
+		claim_zero(remove(path2));
+	}
 }

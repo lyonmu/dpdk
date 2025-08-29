@@ -391,7 +391,6 @@ mlx5_set_swp_types_table(void)
 	}
 }
 
-#define MLX5_SYSTEM_LOG_DIR "/var/log"
 /**
  * Dump debug information to log file.
  *
@@ -411,20 +410,11 @@ mlx5_dump_debug_information(const char *fname, const char *hex_title,
 {
 	FILE *fd;
 
-	MKSTR(path, "%s/%s", MLX5_SYSTEM_LOG_DIR, fname);
-	fd = fopen(path, "a+");
+	fd = mlx5_os_debug_dump_file_open(fname);
 	if (!fd) {
-		DRV_LOG(WARNING, "cannot open %s for debug dump", path);
-		MKSTR(path2, "./%s", fname);
-		fd = fopen(path2, "a+");
-		if (!fd) {
-			DRV_LOG(ERR, "cannot open %s for debug dump", path2);
-			return;
-		}
-		DRV_LOG(INFO, "New debug dump in file %s", path2);
-	} else {
-		DRV_LOG(INFO, "New debug dump in file %s", path);
+		return;
 	}
+
 	if (hex_title)
 		rte_hexdump(fd, hex_title, buf, hex_len);
 	else

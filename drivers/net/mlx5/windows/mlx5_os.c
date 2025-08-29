@@ -632,6 +632,36 @@ error:
 	return NULL;
 }
 
+/*
+ * Open a debug dump file on Windows.
+ *
+ * The function attempts to create/open the file in the following order:
+ * 1. EAL runtime directory,
+ * 2. current working directory ("./").
+ */
+FILE *
+mlx5_os_debug_dump_file_open(const char *fname)
+{
+	FILE *fd = NULL;
+
+	MKSTR(path, "%s/%s", rte_eal_get_runtime_dir(), fname);
+	fd = fopen(path, "a+");
+	if (fd) {
+		DRV_LOG(INFO, "New debug dump in file %s", path);
+		return fd;
+	}
+	DRV_LOG(WARNING, "cannot open %s for debug dump", path);
+
+	MKSTR(path2, "./%s", fname);
+	fd = fopen(path2, "a+");
+	if (fd)
+		DRV_LOG(INFO, "New debug dump in file %s", path2);
+	else
+		DRV_LOG(ERR, "cannot open %s for debug dump", path2);
+
+	return fd;
+}
+
 /**
  * This function should share events between multiple ports of single IB
  * device.  Currently it has no support under Windows.

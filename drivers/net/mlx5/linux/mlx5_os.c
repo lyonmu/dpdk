@@ -3024,6 +3024,50 @@ mlx5_os_net_cleanup(void)
 	mlx5_pmd_socket_uninit();
 }
 
+/* Default system log directory on Linux. */
+#define MLX5_SYSTEM_LOG_DIR "/var/log"
+
+/*
+ * Open a debug dump file on Linux.
+ *
+ * The function attempts to create/open the file in the following order:
+ * 1. /var/log (if writable),
+ * 2. EAL runtime directory,
+ * 3. current working directory ("./").
+ */
+FILE *
+mlx5_os_debug_dump_file_open(const char *fname)
+{
+	FILE *fd = NULL;
+
+	if (access(MLX5_SYSTEM_LOG_DIR, W_OK) == 0) {
+		MKSTR(path, "%s/%s", MLX5_SYSTEM_LOG_DIR, fname);
+		fd = fopen(path, "a+");
+		if (fd) {
+			DRV_LOG(INFO, "New debug dump in file %s", path);
+			return fd;
+		}
+		DRV_LOG(WARNING, "cannot open %s for debug dump", path);
+	}
+
+	MKSTR(path2, "%s/%s", rte_eal_get_runtime_dir(), fname);
+	fd = fopen(path2, "a+");
+	if (fd) {
+		DRV_LOG(INFO, "New debug dump in file %s", path2);
+		return fd;
+	}
+	DRV_LOG(WARNING, "cannot open %s for debug dump", path2);
+
+	MKSTR(path3, "./%s", fname);
+	fd = fopen(path3, "a+");
+	if (fd)
+		DRV_LOG(INFO, "New debug dump in file %s", path3);
+	else
+		DRV_LOG(ERR, "cannot open %s for debug dump", path3);
+
+	return fd;
+}
+
 /**
  * Install shared asynchronous device events handler.
  * This function is implemented to support event sharing

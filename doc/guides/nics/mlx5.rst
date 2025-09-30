@@ -745,6 +745,16 @@ for an additional list of options shared with other mlx5 drivers.
 
     <Primary_PCI_BDF>,representor=pf[0,1]vf[0-2]
 
+  To probe VF port representors 0 through 2 on both PFs of bonding device on
+  ConnectX-7 Multi-Host Setup, the PF index is not continuous, user need to
+  query the PF index based on the return value of the related sysfs entries::
+
+    cat /sys/class/net/*/phys_port_name
+
+  Example output is 0 and 2 for PF1 and PF2, then use [0,2] for PF index::
+
+    <Primary_PCI_BDF>,representor=pf[0,2]vf[0-2]
+
 - ``repr_matching_en`` parameter [int]
 
   - 0. If representor matching is disabled, then there will be no implicit

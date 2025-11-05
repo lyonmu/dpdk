@@ -1364,6 +1364,8 @@ HW steering is :ref:`enabled <mlx5_dv_flow>` with ``dv_flow_en=2``.
 Reconfiguring HW steering engine is not supported.
 Any subsequent call to ``rte_flow_configure()`` with different configuration
 than initially provided will be rejected.
+Note: The application must call rte_flow_configure before creating any flow rules
+when using async API's.
 
 Limitations
 ^^^^^^^^^^^
@@ -1401,6 +1403,49 @@ Limitations
    c. Any encapsulation action, including the combination of RAW_ENCAP and RAW_DECAP actions
       which results in L3 encap.
    d. Only in transfer (switchdev) mode.
+
+#. When using synchronous rte_flow APIs,
+   the following limitations and considerations apply:
+
+   - Matching Restrictions:
+
+      - RTE_FLOW_ITEM_TYPE_MARK (16-bit match) is unsupported.
+        Use RTE_FLOW_ITEM_TYPE_META (32-bit match) as an alternative.
+      - RTE_FLOW_ITEM_TYPE_PORT_REPRESENTOR is unsupported.
+        Instead, use RTE_FLOW_ITEM_TYPE_TX_QUEUE and create a separate rule for each send queue.
+      - Rules created on proxy ports without explicit represented port matching will match packets from all ports.
+      - The c_rsvd0_ver field matching of GRE is not supported on group 0(Root Table).
+      - Match Field Limitations: There are limitations on size of match fields.
+        Exceeding these limitations will result in an error, unlike other flow engine
+        (dv_flow_en < 2) that handle this by creating a tree of rules.
+
+   - Actions Restrictions:
+
+      - RTE_FLOW_ACTION_TYPE_METER is not supported.
+        Use RTE_FLOW_ACTION_TYPE_METER_MARK instead.
+
+   - Flow Creation and Query:
+
+      - vtunnel offload is not supported.
+      - Transfer Flows: Creating transfer flows on representor ports is unsupported.
+      - Aging Query: Reports aged flows only once.
+      - Duplicate Rules: When updating a rule by inserting a new one and deleting the old one,
+        for non zero group,after adding the new rule, and before the deletion of the old rule,
+        the new rule will be matched, contrary to the behavior in other flow engines (dv_flow_en < 2)
+        in which the old rule will be matched.
+
+   - Port Restrictions:
+
+      - Port start/stop ordering for eswitch - app should start the proxy port before the representors
+        and stop the representor ports before the proxy port.
+      - By default, the port is configured with zeroed rte_flow_port_attr:
+        there are zero flow queues(one is created by default), no actions, and no flags set.
+        The default flow queue size for rte_flow_queue_attr is 32 (used for the internal flow queue).
+        If the application uses any configurable actions (such as meter, age, CT, or counter),
+        the system will allocate the maximum number of available actions per port.
+        To optimize memory usage, the application should call rte_flow_configure and specify only
+        the required number of actions.
+        If the application wants to modify flow queue settings, it should also use rte_flow_configure.
 
 
 .. _mlx5_bifurcated:

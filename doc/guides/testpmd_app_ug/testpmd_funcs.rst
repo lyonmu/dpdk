@@ -1877,6 +1877,14 @@ Set a controllable LED associated with a certain port on or off::
 
    testpmd> set port (port_id) led (on|off)
 
+set dcb fwd_tc
+~~~~~~~~~~~~~~
+
+Config DCB forwarding on specify TCs, if bit-n in tc-mask is 1, then TC-n's
+forwarding is enabled, and vice versa::
+
+   testpmd> set dcb fwd_tc (tc_mask)
+
 Port Functions
 --------------
 
